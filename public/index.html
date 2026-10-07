@@ -29,7 +29,8 @@
       </div>
       <form id="authForm">
         <label id="nameRow" hidden>Full name<input id="fullName" autocomplete="name" maxlength="80"></label>
-        <label>College email<input id="email" type="email" required autocomplete="email"></label>
+        <label>College email<input id="email" type="email" required autocomplete="email">
+          <span class="hint muted small" id="emailHint" hidden></span></label>
         <label>Password<input id="password" type="password" required minlength="6" autocomplete="current-password"></label>
         <button type="submit" id="authSubmit">Log in</button>
       </form>

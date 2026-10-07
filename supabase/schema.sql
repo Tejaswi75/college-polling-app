@@ -149,6 +149,56 @@ as $$
 $$;
 
 -- ---------------------------------------------------------------------------
+-- College email only
+-- Only addresses at this domain can sign up (or switch their account to).
+-- Change it with:  update public.app_settings set allowed_email_domain = 'yourcollege.edu';
+-- Set it to null to allow any email. Turn on "Confirm email" in Supabase Auth so
+-- students must also prove they own the inbox.
+-- ---------------------------------------------------------------------------
+create table public.app_settings (
+  id                   boolean primary key default true check (id),  -- exactly one row
+  allowed_email_domain text check (allowed_email_domain is null or allowed_email_domain ~ '^[a-z0-9.-]+\.[a-z]{2,}$')
+);
+insert into public.app_settings (allowed_email_domain) values ('niet.co.in');
+
+-- No policies: users cannot read or change settings directly, only through the function below
+alter table public.app_settings enable row level security;
+
+-- The allowed domain (public, so the sign-up page can show it)
+create or replace function public.allowed_email_domain()
+returns text
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select allowed_email_domain from public.app_settings where id;
+$$;
+
+-- Rejects sign-ups and email changes outside the allowed domain
+create or replace function public.enforce_college_email()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  domain text := public.allowed_email_domain();
+begin
+  -- Compare the whole part after the last "@", so "x@niet.co.in.evil.com" and "x@fakeniet.co.in" fail
+  if domain is not null and lower(substring(new.email from '@([^@]+)$')) is distinct from lower(domain) then
+    raise exception 'Please sign up with your @% college email.', domain
+      using errcode = 'check_violation';
+  end if;
+  return new;
+end;
+$$;
+
+create trigger enforce_college_email
+  before insert or update of email on auth.users
+  for each row execute function public.enforce_college_email();
+
+-- ---------------------------------------------------------------------------
 -- After signing up yourself, make your account an admin (replace the email):
 --   update public.profiles set role = 'admin' where email = 'you@example.com';
 -- ---------------------------------------------------------------------------

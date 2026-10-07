@@ -7,6 +7,7 @@ The key rule, **one vote per student per poll**, is enforced by the database its
 ## Features
 
 - **Sign up and log in** with email and password (Supabase Auth)
+- **College emails only:** sign-ups outside the college domain (for example `@niet.co.in`) are rejected by the database, and email confirmation proves the student owns the inbox
 - **Two roles:** voters and admins (role-based access control)
 - **One vote per user per poll**, guaranteed by a database `UNIQUE` constraint
 - **Votes are final:** they cannot be edited or deleted
@@ -41,6 +42,7 @@ Browser (public/)  ──login──▶  Supabase Auth  ──▶ access token
   - A composite foreign key makes sure the chosen candidate belongs to the same poll.
   - Policies allow voting only as yourself and only while the poll is open, and allow only admins to manage polls.
   - Nobody can change their own role.
+  - A trigger on `auth.users` rejects any sign-up, or email change, outside the domain in `app_settings`. It compares the whole domain, so look-alikes such as `fakeniet.co.in` or `niet.co.in.evil.com` fail too.
 
 ## Project structure
 
@@ -56,22 +58,27 @@ college-polling-app/
 │       └── admin.js       Stats, create/close/delete polls, candidates
 ├── public/                index.html, app.js, styles.css (the UI)
 ├── supabase/schema.sql    Tables, constraints, row-level security, functions
-└── tests/schema.test.mjs  20 tests for the constraints and security rules
+└── tests/schema.test.mjs  29 tests for the constraints and security rules
 ```
 
 ## Run it locally
 
 1. **Create a Supabase project** (free) at [supabase.com](https://supabase.com).
 2. In the Supabase dashboard open **SQL Editor**, paste the contents of `supabase/schema.sql`, and click **Run**.
-3. In **Authentication → Sign In / Providers → Email**, turn off **Confirm email** for local testing (or keep it on and confirm via the email link).
-4. Install and configure:
+3. **Set your college's email domain.** The schema allows only `@niet.co.in`. For another college, run:
+   ```sql
+   update public.app_settings set allowed_email_domain = 'yourcollege.edu';
+   ```
+   Set it to `null` to allow any email while testing.
+4. In **Authentication → Sign In / Providers → Email**, keep **Confirm email** on for real use, so students must click a link sent to their college inbox. You can turn it off for local testing; the free Supabase email service sends only a few emails per hour.
+5. Install and configure:
    ```bash
    npm install
    cp .env.example .env      # then fill in SUPABASE_URL and SUPABASE_ANON_KEY
    npm start
    ```
    Find both values under **Project Settings → API**. Open [http://localhost:3000](http://localhost:3000).
-5. **Make yourself admin:** sign up in the app, then run this in the SQL Editor:
+6. **Make yourself admin:** sign up in the app, then run this in the SQL Editor:
    ```sql
    update public.profiles set role = 'admin' where email = 'you@example.com';
    ```
@@ -83,7 +90,7 @@ college-polling-app/
 npm test
 ```
 
-Runs the schema in an in-process Postgres and checks 20 rules, for example: a second vote is rejected, voters cannot vote for another user or in a closed poll, votes cannot be edited or deleted, voters cannot see results while a poll is open, and voters cannot make themselves admin.
+Runs the schema in an in-process Postgres and checks 29 rules, for example: a second vote is rejected, non-college emails cannot sign up, voters cannot vote for another user or in a closed poll, votes cannot be edited or deleted, voters cannot see results while a poll is open, and voters cannot make themselves admin.
 
 ## API
 

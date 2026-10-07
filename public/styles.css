@@ -12,6 +12,7 @@
   --bad-soft: #fdecec;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--ink); }
 main { max-width: 860px; margin: 0 auto; padding: 24px 16px 64px; }
 h1 { font-size: 1.6rem; margin: 8px 0 16px; }
@@ -19,6 +20,7 @@ h2 { font-size: 1.15rem; margin: 0 0 12px; }
 h3 { font-size: 1.05rem; margin: 0; }
 .muted { color: var(--muted); }
 .small { font-size: .85rem; }
+.hint { display: block; margin-top: 4px; }
 
 .topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
   padding: 14px 20px; background: var(--card); border-bottom: 1px solid var(--line); }

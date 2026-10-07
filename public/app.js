@@ -3,6 +3,7 @@
 let sb = null;          // Supabase client (auth only)
 let me = null;          // current user's profile
 let authMode = "login";
+let emailDomain = null; // e.g. "niet.co.in"; null means any email is allowed
 
 const $ = (id) => document.getElementById(id);
 const views = ["authView", "pollsView", "pollView", "adminView"];
@@ -49,7 +50,10 @@ function setAuthMode(mode) {
   $("nameRow").hidden = mode !== "signup";
   $("authSubmit").textContent = mode === "signup" ? "Create account" : "Log in";
   $("password").autocomplete = mode === "signup" ? "new-password" : "current-password";
+  $("emailHint").hidden = !(mode === "signup" && emailDomain);
 }
+
+const isCollegeEmail = (email) => !emailDomain || email.toLowerCase().endsWith("@" + emailDomain.toLowerCase());
 
 async function onAuthSubmit(e) {
   e.preventDefault();
@@ -58,6 +62,7 @@ async function onAuthSubmit(e) {
   $("authSubmit").disabled = true;
   try {
     if (authMode === "signup") {
+      if (!isCollegeEmail(email)) throw new Error(`Please sign up with your @${emailDomain} college email.`);
       const { data, error } = await sb.auth.signUp({
         email, password, options: { data: { full_name: $("fullName").value.trim() } },
       });
@@ -69,7 +74,9 @@ async function onAuthSubmit(e) {
     }
     await enterApp();
   } catch (err) {
-    toast(err.message, true);
+    // Supabase hides the database's reason behind this generic message
+    const blocked = authMode === "signup" && /database error saving new user/i.test(err.message);
+    toast(blocked ? `Please sign up with your @${emailDomain || "college"} email.` : err.message, true);
   } finally {
     $("authSubmit").disabled = false;
   }
@@ -214,6 +221,11 @@ async function onCreatePoll(e) {
 async function start() {
   const cfg = await fetch("/api/config").then((r) => r.json());
   sb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
+  emailDomain = cfg.allowedEmailDomain || null;
+  if (emailDomain) {
+    $("emailHint").textContent = `Use your @${emailDomain} email.`;
+    $("email").placeholder = `you@${emailDomain}`;
+  }
 
   document.querySelectorAll(".tab").forEach((t) => (t.onclick = () => setAuthMode(t.dataset.tab)));
   $("authForm").onsubmit = onAuthSubmit;

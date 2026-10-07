@@ -20,6 +20,9 @@ await db.exec(`
   grant execute on all functions in schema public, auth to authenticated;
 `);
 
+// Test users below use @x.com, so allow that domain for the run
+await db.exec("update public.app_settings set allowed_email_domain = 'x.com';");
+
 const ADMIN = "00000000-0000-0000-0000-00000000000a";
 const ALICE = "00000000-0000-0000-0000-0000000000a1";
 const BOB = "00000000-0000-0000-0000-0000000000b0";
@@ -101,6 +104,33 @@ r = await as(ADMIN, "select * from admin_stats()");
 ok("admin stats", r.rows?.length === 1 && Number(r.rows[0].votes) === 1 && Number(r.rows[0].voters) === 2);
 r = await as(BOB, "select * from admin_stats()");
 ok("voters get no admin stats", r.rows?.length === 0);
+
+// College email rule
+const signup = async (email) => {
+  try { await db.query("insert into auth.users (id, email) values (gen_random_uuid(), $1)", [email]); return null; }
+  catch (e) { return e; }
+};
+let e = await signup("eve@gmail.com");
+ok("sign-up with an email outside the college domain is rejected", e?.code === "23514");
+e = await signup("eve@fakex.com");
+ok("look-alike domain is rejected", !!e);
+e = await signup("eve@x.com.evil.com");
+ok("college domain followed by another domain is rejected", !!e);
+e = await signup("Carol@X.COM");
+ok("college email is accepted regardless of letter case", !e);
+r = await db.query("select 1 from auth.users where email = $1", ["eve@gmail.com"]);
+ok("rejected sign-up creates no account", r.rows.length === 0);
+try { await db.query("update auth.users set email = 'alice@gmail.com' where id = $1", [ALICE]); ok("cannot switch an account to a non-college email", false); }
+catch (err) { ok("cannot switch an account to a non-college email", err.code === "23514"); }
+
+r = await as(ALICE, "select public.allowed_email_domain() as d");
+ok("signed-in users can read the allowed domain", r.rows?.[0]?.d === "x.com");
+r = await as(ALICE, "update app_settings set allowed_email_domain = 'gmail.com' returning id");
+ok("voters cannot change the allowed domain", !!r.error || (r.rows?.length ?? 0) === 0);
+
+await db.exec("update public.app_settings set allowed_email_domain = null;");
+e = await signup("dave@gmail.com");
+ok("setting the domain to null allows any email", !e);
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
