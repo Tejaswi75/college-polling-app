@@ -2,7 +2,7 @@ require("dotenv").config();
 
 const path = require("path");
 const express = require("express");
-const { SUPABASE_URL, SUPABASE_ANON_KEY } = require("./src/supabase");
+const { authClient, SUPABASE_URL, SUPABASE_ANON_KEY } = require("./src/supabase");
 const { requireAuth, requireAdmin } = require("./src/auth");
 const pollRoutes = require("./src/routes/polls");
 const adminRoutes = require("./src/routes/admin");
@@ -13,8 +13,12 @@ app.use(express.static(path.join(__dirname, "public")));
 
 // The browser needs the public Supabase URL and anon key to sign users in.
 // The anon key is designed to be public; row-level security protects the data.
-app.get("/api/config", (req, res) => {
-  res.json({ supabaseUrl: SUPABASE_URL, supabaseAnonKey: SUPABASE_ANON_KEY });
+// It also gets the college email domain so the sign-up form can check it early.
+// The database enforces the same rule, so this is only for a friendlier message.
+app.get("/api/config", async (req, res) => {
+  const { data, error } = await authClient.rpc("allowed_email_domain");
+  if (error) console.warn("Could not read allowed_email_domain:", error.message);
+  res.json({ supabaseUrl: SUPABASE_URL, supabaseAnonKey: SUPABASE_ANON_KEY, allowedEmailDomain: error ? null : data });
 });
 
 app.get("/api/me", requireAuth, (req, res) => res.json(req.profile));
