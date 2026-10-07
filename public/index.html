@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>College Polls</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">🗳️ College Polls</div>
+    <div class="who" id="who" hidden>
+      <span id="whoName"></span>
+      <span class="badge" id="whoRole"></span>
+      <button class="ghost" id="adminBtn" hidden>Admin dashboard</button>
+      <button class="ghost" id="logoutBtn">Log out</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="toast" id="toast" hidden></div>
+
+    <!-- Login / sign-up -->
+    <section id="authView" class="card narrow" hidden>
+      <div class="tabs">
+        <button class="tab active" data-tab="login">Log in</button>
+        <button class="tab" data-tab="signup">Sign up</button>
+      </div>
+      <form id="authForm">
+        <label id="nameRow" hidden>Full name<input id="fullName" autocomplete="name" maxlength="80"></label>
+        <label>College email<input id="email" type="email" required autocomplete="email"></label>
+        <label>Password<input id="password" type="password" required minlength="6" autocomplete="current-password"></label>
+        <button type="submit" id="authSubmit">Log in</button>
+      </form>
+    </section>
+
+    <!-- Poll list -->
+    <section id="pollsView" hidden>
+      <h1>Polls</h1>
+      <div id="pollList" class="grid"></div>
+    </section>
+
+    <!-- One poll -->
+    <section id="pollView" hidden>
+      <button class="ghost back" data-go="polls">← All polls</button>
+      <div class="card">
+        <div class="row-between">
+          <h1 id="pollTitle"></h1>
+          <span class="status" id="pollStatus"></span>
+        </div>
+        <p class="muted" id="pollDesc"></p>
+        <form id="voteForm"></form>
+        <div id="results"></div>
+      </div>
+    </section>
+
+    <!-- Admin dashboard -->
+    <section id="adminView" hidden>
+      <button class="ghost back" data-go="polls">← All polls</button>
+      <h1>Admin dashboard</h1>
+      <div class="stats" id="stats"></div>
+
+      <div class="card">
+        <h2>Create a poll</h2>
+        <form id="createForm">
+          <label>Title<input id="newTitle" required minlength="3" maxlength="120" placeholder="Class Representative 2026"></label>
+          <label>Description<textarea id="newDesc" maxlength="500" rows="2" placeholder="Optional"></textarea></label>
+          <label>Candidates (one per line, at least two)<textarea id="newCands" rows="4" required placeholder="Riya Sharma&#10;Arjun Verma"></textarea></label>
+          <button type="submit">Create poll</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>Manage polls</h2>
+        <div id="adminPolls"></div>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
